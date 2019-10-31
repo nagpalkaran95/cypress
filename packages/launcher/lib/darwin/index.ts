@@ -23,16 +23,19 @@ const detectChromium = partial(findApp, [
   'CFBundleShortVersionString',
 ])
 const detectEdgeCanary = partial(findApp, [
+  'Microsoft Edge Canary.app',
   'Contents/MacOS/Microsoft Edge Canary',
   'com.microsoft.Edge.Canary',
   'CFBundleShortVersionString',
 ])
 const detectEdgeDev = partial(findApp, [
+  'Microsoft Edge Dev.app',
   'Contents/MacOS/Microsoft Edge Dev',
   'com.microsoft.Edge.Dev',
   'CFBundleShortVersionString',
 ])
 const detectOpera = partial(findApp, [
+  'Opera.app',
   'Contents/MacOS/Opera',
   'com.operasoftware.Opera',
   'CFBundleShortVersionString',
