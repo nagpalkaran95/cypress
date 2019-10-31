@@ -52,6 +52,30 @@ export const browsers: Browser[] = [
     profile: true,
     binary: 'opera',
   },
+  {
+    name: 'firefox',
+    family: 'firefox',
+    displayName: 'Firefox',
+    versionRegex: /Firefox (\S+)/,
+    profile: true,
+    binary: 'firefox',
+  },
+  {
+    name: 'firefoxDeveloperEdition',
+    family: 'firefox',
+    displayName: 'Firefox Developer Edition',
+    versionRegex: /Firefox Developer Edition (\S+)/,
+    profile: true,
+    binary: 'firefox-developer-edition',
+  },
+  {
+    name: 'firefoxNightly',
+    family: 'firefox',
+    displayName: 'Firefox Nightly',
+    versionRegex: /Firefox Nightly (\S+)/,
+    profile: true,
+    binary: 'firefox-nightly',
+  },
 ]
 
 /** starts a found browser and opens URL if given one */

@@ -17,6 +17,7 @@ $Cy = require("./cypress/cy")
 $Events = require("./cypress/events")
 $Keyboard = require("./cy/keyboard")
 $SetterGetter = require("./cypress/setter_getter")
+$Keyboard = require("./cy/keyboard").default
 $Log = require("./cypress/log")
 $Location = require("./cypress/location")
 $LocalStorage = require("./cypress/local_storage")
@@ -27,6 +28,14 @@ $Server = require("./cypress/server")
 $Screenshot = require("./cypress/screenshot")
 $SelectorPlayground = require("./cypress/selector_playground")
 $utils = require("./cypress/utils")
+browserInfo = require("./cypress/browser")
+
+# tryCatch = (fn) ->
+#   try
+#     fn()
+#   catch err
+#     debugger
+#     throw err
 
 proxies = {
   runner: "getStartTime getTestsState getEmissions setNumLogs countByTestState getDisplayPropsForLog getConsolePropsForLogById getSnapshotPropsForLogById getErrorByTestId setStartTime resumeAtTest normalizeAll".split(" ")
@@ -135,6 +144,8 @@ class $Cypress
 
     config = _.omit(config, "env", "remote", "resolved", "scaffoldedFiles", "javascripts", "state")
 
+    _.extend(@, browserInfo(config))
+
     @state = $SetterGetter.create({})
     @config = $SetterGetter.create(config)
     @env = $SetterGetter.create(env)
@@ -179,6 +190,7 @@ class $Cypress
     return null
 
   action: (eventName, args...) ->
+    # tryCatch =>
     ## normalizes all the various ways
     ## other objects communicate intent
     ## and 'action' to Cypress
@@ -486,6 +498,7 @@ class $Cypress
   minimatch: minimatch
   sinon: sinon
   lolex: lolex
+  Keyboard: $Keyboard
 
   @create = (config) ->
     new $Cypress(config)

@@ -5,6 +5,7 @@ import React, { Component } from 'react'
 import Tooltip from '@cypress/react-tooltip'
 import { $ } from '@packages/driver'
 
+import eventManager from '../lib/event-manager'
 import { configFileFormatted } from '../lib/config-file-formatted'
 import SelectorPlayground from '../selector-playground/selector-playground'
 import selectorPlaygroundModel from '../selector-playground/selector-playground-model'
@@ -20,6 +21,7 @@ export default class Header extends Component {
       <header
         ref='header'
         className={cs({
+          'display-selector-playground': eventManager.isBrowserType('chrome'),
           'showing-selector-playground': selectorPlaygroundModel.isOpen,
         })}
       >

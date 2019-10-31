@@ -5,17 +5,20 @@ import { log } from '../log'
 import { merge, partial } from 'ramda'
 
 const detectCanary = partial(findApp, [
+  'Google Chrome Canary.app',
   'Contents/MacOS/Google Chrome Canary',
   'com.google.Chrome.canary',
   'KSVersion',
 ])
 const detectChrome = partial(findApp, [
+  'Google Chrome.app',
   'Contents/MacOS/Google Chrome',
   'com.google.Chrome',
   'KSVersion',
 ])
 const detectChromium = partial(findApp, [
-  'Contents/MacOS/Chromium',
+  'Chromium.app',
+  'Contents/DMacOS/Chromium',
   'org.chromium.Chromium',
   'CFBundleShortVersionString',
 ])
@@ -34,6 +37,24 @@ const detectOpera = partial(findApp, [
   'com.operasoftware.Opera',
   'CFBundleShortVersionString',
 ])
+const detectFirefox = partial(findApp, [
+  'Firefox.app',
+  'Contents/MacOS/firefox-bin',
+  'org.mozilla.firefox',
+  'CFBundleShortVersionString',
+])
+const detectFirefoxDeveloperEdition = partial(findApp, [
+  'Firefox Developer Edition.app',
+  'Contents/MacOS/firefox-bin',
+  'org.mozilla.firefoxdeveloperedition',
+  'CFBundleShortVersionString',
+])
+const detectFirefoxNightly = partial(findApp, [
+  'Firefox Nightly.app',
+  'Contents/MacOS/firefox-bin',
+  'org.mozilla.nightly',
+  'CFBundleShortVersionString',
+])
 
 type Detectors = {
   [index: string]: Function
@@ -46,6 +67,9 @@ const browsers: Detectors = {
   edgeDev: detectEdgeDev,
   edgeCanary: detectEdgeCanary,
   opera: detectOpera,
+  firefox: detectFirefox,
+  firefoxDeveloperEdition: detectFirefoxDeveloperEdition,
+  firefoxNightly: detectFirefoxNightly,
 }
 
 export function getVersionString (path: string) {

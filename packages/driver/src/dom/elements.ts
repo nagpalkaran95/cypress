@@ -331,7 +331,7 @@ const isNeedSingleValueChangeInputElement = (el: HTMLElement): el is HTMLSingleV
     return false
   }
 
-  return inputTypeNeedSingleValueChangeRe.test(el.type)
+  return inputTypeNeedSingleValueChangeRe.test((el.getAttribute('type') || '').toLocaleLowerCase())
 }
 
 const canSetSelectionRangeElement = (el): el is HTMLElementCanSetSelectionRange => {
@@ -350,7 +350,7 @@ const getTagName = (el) => {
 //   - with [contenteditable]
 //   - with document.designMode = 'on'
 const isContentEditable = (el: any): el is HTMLContentEditableElement => {
-  return getNativeProp(el, 'isContentEditable')
+  return getNativeProp(el, 'isContentEditable') || $document.getDocumentFromElement(el).designMode === 'on'
 }
 
 const isTextarea = (el): el is HTMLTextAreaElement => {
@@ -503,6 +503,34 @@ const isInputType = function (el: JQueryOrEl<HTMLElement>, type) {
   }
 
   return elType === type
+}
+
+const isType = function (el: JQueryOrEl<HTMLElement>, type) {
+  el = ([] as HTMLElement[]).concat($jquery.unwrap(el))[0]
+
+  if (!isInput(el) && !isButton(el)) {
+    return false
+  }
+
+  // NOTE: use DOMElement.type instead of getAttribute('type') since
+  //       <input type="asdf"> will have type="text", and behaves like text type
+  const elType = (getNativeProp(el, 'type') || '').toLowerCase()
+
+  if (_.isArray(type)) {
+    return _.includes(type, elType)
+  }
+
+  return elType === type
+}
+
+const isAttrType = function (el: HTMLInputElement, type: string) {
+  const elType = (el.getAttribute('type') || '').toLowerCase()
+
+  if (elType === type) {
+    return true
+  }
+
+  return false
 }
 
 const isScrollOrAuto = (prop) => {
@@ -1079,6 +1107,8 @@ export {
   isIframe,
   isTextarea,
   isInputType,
+  isType,
+  isAttrType,
   isFocused,
   isFocusedOrInFocused,
   isInputAllowingImplicitFormSubmission,

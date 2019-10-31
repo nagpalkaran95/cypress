@@ -9,7 +9,7 @@ la            = require("lazy-ass")
 check         = require("check-more-types")
 
 # returns true if the passed string is a known browser family name
-isBrowserFamily = check.oneOf(["electron", "chrome"])
+isBrowserFamily = check.oneOf(["electron", "chrome", "firefox"])
 
 instance = null
 
@@ -44,6 +44,10 @@ getBrowserLauncherByFamily = (family) ->
       require("./electron")
     when "chrome"
       require("./chrome")
+    when "firefox", "firefoxDeveloperEdition", "firefoxNightly"
+      require("./firefox")
+    when 'ie'
+      require('./ie.js')
 
 isValidPathToBrowser = (str) ->
   path.basename(str) isnt str
@@ -118,9 +122,8 @@ module.exports = {
         debug("browser opened")
         ## TODO: bind to process.exit here
         ## or move this functionality into cypress-core-launder
-
+        
         instance = i
-
         ## TODO: normalizing opening and closing / exiting
         ## so that there is a default for each browser but
         ## enable the browser to configure the interface

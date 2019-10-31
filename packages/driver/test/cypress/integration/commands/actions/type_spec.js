@@ -1,16 +1,79 @@
 const $ = Cypress.$.bind(Cypress)
 const { _ } = Cypress
 const { Promise } = Cypress
-const { getCommandLogWithText, findReactInstance, withMutableReporterState, attachListeners, shouldBeCalledWithCount } = require('../../../support/utils')
+const { getCommandLogWithText, findReactInstance, withMutableReporterState } = require('../../../support/utils')
 
-const keyEvents = [
-  'keydown',
-  'keyup',
-  'keypress',
-  'input',
-  'textInput',
-]
-const attachKeyListeners = attachListeners(keyEvents)
+const _it = it
+
+function overrideIt (fn) {
+  it = fn()
+  it['only'] = fn('only')
+  it['skip'] = fn('skip')
+}
+
+overrideIt(function (subFn) {
+  return function (...args) {
+    const origIt = subFn ? _it[subFn] : _it
+
+    if (args.length > 2 && _.isObject(args[1])) {
+      const opts = _.defaults({}, args[1], {
+        browsers: '*',
+      })
+
+      const mochaArgs = [args[0], args[2]]
+
+      // return origIt.apply(this, mochaArgs)
+
+      if (!shouldRunBrowser(opts.browsers, Cypress.browser.family)) {
+        mochaArgs[0] = `[browser skip (${opts.browsers})]${mochaArgs[0]}`
+
+        if (subFn === 'only') {
+          mochaArgs[1] = function () {
+            this.skip()
+          }
+
+          return origIt.apply(this, mochaArgs)
+        }
+
+        return _it['skip'].apply(this, mochaArgs)
+      }
+
+      return origIt.apply(this, mochaArgs)
+    }
+
+    return origIt.apply(this, args)
+  }
+})
+
+const shouldRunBrowser = (browserlist, browser) => {
+  // return true
+  let allEnabled = false
+  const exclude = []
+  const include = []
+
+  browserlist.split(/\s+,\s+/).forEach((v) => {
+    if (v === '*') {
+      allEnabled = true
+
+      return
+    }
+
+    if (v.includes('!')) {
+      allEnabled = true
+      exclude.push(v.slice(1))
+
+      return
+    }
+
+    include.push(v)
+  })
+
+  if (!allEnabled) {
+    return include.includes(browser)
+  }
+
+  return !exclude.includes(browser)
+}
 
 // trim new lines at the end of innerText
 // due to changing browser versions implementing
@@ -20,7 +83,7 @@ const trimInnerText = ($el) => {
 }
 
 describe('src/cy/commands/actions/type', () => {
-  before(() => {
+  before(function () {
     cy
     .visit('/fixtures/dom.html')
     .then(function (win) {
@@ -78,12 +141,7 @@ describe('src/cy/commands/actions/type', () => {
 
     it('appends subsequent type commands', () => {
       cy
-      .get('input:first').type('123')
-      .then(($el) => {
-        $el[0].setSelectionRange(0, 0)
-      })
-      .blur()
-      .type('456')
+      .get('input:first').type('123').type('456')
       .should('have.value', '123456')
     })
 
@@ -135,14 +193,13 @@ describe('src/cy/commands/actions/type', () => {
       })
     })
 
-    // cursor should be moved to the end before type, so text is appended
     it('can type into contenteditable', () => {
       const oldText = cy.$$('#contenteditable').get(0).innerText
 
       cy.get('#contenteditable')
       .type(' foo')
       .then(($div) => {
-        expect($div.get(0).innerText).to.eq((`${oldText} foo`))
+        expect(trimInnerText($div)).to.eq((`${oldText} foo`))
       })
     })
 
@@ -171,26 +228,23 @@ describe('src/cy/commands/actions/type', () => {
     })
 
     it('does not click when body is subject', () => {
-      const clicked = cy.stub()
+      let bodyClicked = false
 
-      cy.$$('body').on('click', clicked)
+      cy.$$('body').on('click', () => {
+        bodyClicked = true
+      })
 
       cy.get('body').type('foo').then(() => {
-        expect(clicked).not.to.be.calledOnce
+        expect(bodyClicked).to.be.false
       })
     })
 
     it('can type into element that redirects focus', () => {
-      const $firstTabIndexEl = cy.$$('div[tabindex]:first')
-
-      $firstTabIndexEl.on('focus', () => {
+      cy.$$('div[tabindex]:first').on('focus', () => {
         cy.$$('input:first').focus()
       })
 
-      cy.get('div[tabindex]:first').type('foobar').then(($subject) => {
-        // should not have changed the subject
-        expect($subject.get(0)).to.eq($firstTabIndexEl.get(0))
-      })
+      cy.get('div[tabindex]:first').type('foobar')
 
       cy.get('input:first')
       .should('be.focused')
@@ -198,29 +252,25 @@ describe('src/cy/commands/actions/type', () => {
     })
 
     describe('actionability', () => {
-      it('can forcibly type + click even when element is invisible', () => {
+      it('can forcibly click even when element is invisible', () => {
         const $txt = cy.$$(':text:first').hide()
 
         expect($txt).not.to.have.value('foo')
 
-        const clicked = cy.stub()
+        let clicked = false
 
-        $txt.on('click', clicked)
+        $txt.on('click', () => {
+          clicked = true
+        })
 
         cy.get(':text:first').type('foo', { force: true }).then(($input) => {
-          expect(clicked).to.be.calledOnce
+          expect(clicked).to.be.true
 
           expect($input).to.have.value('foo')
         })
       })
 
-      it('can force type when element is disabled', function () {
-        cy.$$('input:text:first').prop('disabled', true)
-        cy.get('input:text:first').type('foo', { force: true })
-        .should('have.value', 'foo')
-      })
-
-      it('can forcibly type + click even when being covered by another element', () => {
+      it('can forcibly click even when being covered by another element', () => {
         const $input = $('<input />')
         .attr('id', 'input-covered-in-span')
         .css({
@@ -239,12 +289,14 @@ describe('src/cy/commands/actions/type', () => {
         })
         .prependTo(cy.$$('body'))
 
-        const clicked = cy.stub()
+        let clicked = false
 
-        $input.on('click', clicked)
+        $input.on('click', () => {
+          clicked = true
+        })
 
         cy.get('#input-covered-in-span').type('foo', { force: true }).then(($input) => {
-          expect(clicked).to.be.calledOnce
+          expect(clicked).to.be.true
 
           expect($input).to.have.value('foo')
         })
@@ -253,62 +305,68 @@ describe('src/cy/commands/actions/type', () => {
       it('waits until element becomes visible', () => {
         const $txt = cy.$$(':text:first').hide()
 
-        const retried = cy.stub()
+        let retried = false
 
         cy.on('command:retry', _.after(3, () => {
           $txt.show()
-          retried()
+          retried = true
         }))
 
         cy.get(':text:first').type('foo').then(() => {
-          expect(retried).to.be.called
+          expect(retried).to.be.true
         })
       })
 
       it('waits until element is no longer disabled', () => {
         const $txt = cy.$$(':text:first').prop('disabled', true)
 
-        const retried = cy.stub()
-        const clicked = cy.stub()
+        let retried = false
+        let clicks = 0
 
-        $txt.on('click', clicked)
+        $txt.on('click', () => {
+          clicks += 1
+        })
 
         cy.on('command:retry', _.after(3, () => {
           $txt.prop('disabled', false)
-          retried()
+          retried = true
         }))
 
         cy.get(':text:first').type('foo').then(() => {
-          expect(clicked).to.be.calledOnce
+          expect(clicks).to.eq(1)
 
-          expect(retried).to.be.called
+          expect(retried).to.be.true
         })
       })
 
       it('waits until element is no longer readonly', () => {
         const $txt = cy.$$(':text:first').prop('readonly', true)
 
-        const retried = cy.stub()
-        const clicked = cy.stub()
+        let retried = false
+        let clicks = 0
 
-        $txt.on('click', clicked)
+        $txt.on('click', () => {
+          clicks += 1
+        })
 
         cy.on('command:retry', _.after(3, () => {
           $txt.prop('readonly', false)
-          retried()
+          retried = true
         }))
 
         cy.get(':text:first').type('foo').then(() => {
-          expect(clicked).to.be.calledOnce
+          expect(clicks).to.eq(1)
 
-          expect(retried).to.be.called
+          expect(retried).to.be.true
         })
       })
 
       it('waits until element stops animating', () => {
-        const retried = cy.stub()
+        let retries = 0
 
-        cy.on('command:retry', retried)
+        cy.on('command:retry', () => {
+          retries += 1
+        })
 
         cy.stub(cy, 'ensureElementIsNotAnimating')
         .throws(new Error('animating!'))
@@ -318,7 +376,7 @@ describe('src/cy/commands/actions/type', () => {
           // - retry animation coords
           // - retry animation
           // - retry animation
-          expect(retried).to.be.calledThrice
+          expect(retries).to.eq(3)
 
           expect(cy.ensureElementIsNotAnimating).to.be.calledThrice
         })
@@ -344,11 +402,8 @@ describe('src/cy/commands/actions/type', () => {
       it('passes options.animationDistanceThreshold to cy.ensureElementIsNotAnimating', () => {
         const $txt = cy.$$(':text:first')
 
-        const { fromElWindow } = Cypress.dom.getElementCoordinatesByPosition($txt)
-
-        cy.spy(cy, 'ensureElementIsNotAnimating')
-
         cy.get(':text:first').type('foo', { animationDistanceThreshold: 1000 }).then(() => {
+          const { fromElWindow } = Cypress.dom.getElementCoordinatesByPosition($txt)
           const { args } = cy.ensureElementIsNotAnimating.firstCall
 
           expect(args[1]).to.deep.eq([fromElWindow, fromElWindow])
@@ -362,11 +417,8 @@ describe('src/cy/commands/actions/type', () => {
 
         const $txt = cy.$$(':text:first')
 
-        const { fromElWindow } = Cypress.dom.getElementCoordinatesByPosition($txt)
-
-        cy.spy(cy, 'ensureElementIsNotAnimating')
-
         cy.get(':text:first').type('foo').then(() => {
+          const { fromElWindow } = Cypress.dom.getElementCoordinatesByPosition($txt)
           const { args } = cy.ensureElementIsNotAnimating.firstCall
 
           expect(args[1]).to.deep.eq([fromElWindow, fromElWindow])
@@ -509,28 +561,22 @@ describe('src/cy/commands/actions/type', () => {
       })
 
       it('receives keydown and keyup for other special characters and keypress for enter and regular characters', function () {
-        const keydowns = []
-        const keyups = []
-        const keypresses = []
+        const keydowns = cy.stub()
+        const keyups = cy.stub()
+        const keypresses = cy.stub()
 
-        this.$div.keydown((e) => {
-          return keydowns.push(e)
-        })
+        this.$div.keydown(keydowns)
 
-        this.$div.keypress((e) => {
-          return keypresses.push(e)
-        })
+        this.$div.keypress(keypresses)
 
-        this.$div.keyup((e) => {
-          return keyups.push(e)
-        })
+        this.$div.keyup(keyups)
 
         cy.get('#tabindex').type('f{leftarrow}{rightarrow}{enter}')
         .then(() => {
-          expect(keydowns).to.have.length(4)
-          expect(keypresses).to.have.length(2)
+          expect(keydowns).callCount(4)
+          expect(keypresses).callCount(2)
 
-          expect(keyups).to.have.length(4)
+          expect(keyups).callCount(4)
         })
       })
     })
@@ -571,7 +617,9 @@ describe('src/cy/commands/actions/type', () => {
         const $txt = cy.$$(':text:first')
 
         $txt.on('keydown', (e) => {
-          expect(_.toPlainObject(e.originalEvent)).to.include({
+          const obj = _.pick(e.originalEvent, 'altKey', 'bubbles', 'cancelable', 'charCode', 'ctrlKey', 'detail', 'keyCode', 'view', 'layerX', 'layerY', 'location', 'metaKey', 'pageX', 'pageY', 'repeat', 'shiftKey', 'type', 'which', 'key')
+
+          expect(obj).to.deep.eq({
             altKey: false,
             bubbles: true,
             cancelable: true,
@@ -579,14 +627,13 @@ describe('src/cy/commands/actions/type', () => {
             ctrlKey: false,
             detail: 0,
             key: 'a',
-            // has code property https://github.com/cypress-io/cypress/issues/3722
-            code: 'KeyA',
             keyCode: 65, // deprecated but fired by chrome always uppercase in the ASCII table
             location: 0,
             metaKey: false,
             repeat: false,
             shiftKey: false,
             type: 'keydown',
+            view: cy.state('window'),
             which: 65, // deprecated but fired by chrome
           })
 
@@ -600,7 +647,9 @@ describe('src/cy/commands/actions/type', () => {
         const $txt = cy.$$(':text:first')
 
         $txt.on('keypress', (e) => {
-          expect(_.toPlainObject(e.originalEvent)).to.include({
+          const obj = _.pick(e.originalEvent, 'altKey', 'bubbles', 'cancelable', 'charCode', 'ctrlKey', 'detail', 'keyCode', 'view', 'layerX', 'layerY', 'location', 'metaKey', 'pageX', 'pageY', 'repeat', 'shiftKey', 'type', 'which', 'key')
+
+          expect(obj).to.deep.eq({
             altKey: false,
             bubbles: true,
             cancelable: true,
@@ -608,13 +657,13 @@ describe('src/cy/commands/actions/type', () => {
             ctrlKey: false,
             detail: 0,
             key: 'a',
-            code: 'KeyA',
             keyCode: 97, // deprecated
             location: 0,
             metaKey: false,
             repeat: false,
             shiftKey: false,
             type: 'keypress',
+            view: cy.state('window'),
             which: 97, // deprecated
           })
 
@@ -628,7 +677,9 @@ describe('src/cy/commands/actions/type', () => {
         const $txt = cy.$$(':text:first')
 
         $txt.on('keyup', (e) => {
-          expect(_.toPlainObject(e.originalEvent)).to.include({
+          const obj = _.pick(e.originalEvent, 'altKey', 'bubbles', 'cancelable', 'charCode', 'ctrlKey', 'detail', 'keyCode', 'view', 'layerX', 'layerY', 'location', 'metaKey', 'pageX', 'pageY', 'repeat', 'shiftKey', 'type', 'which', 'key')
+
+          expect(obj).to.deep.eq({
             altKey: false,
             bubbles: true,
             cancelable: true,
@@ -636,7 +687,6 @@ describe('src/cy/commands/actions/type', () => {
             ctrlKey: false,
             detail: 0,
             key: 'a',
-            code: 'KeyA',
             keyCode: 65, // deprecated but fired by chrome always uppercase in the ASCII table
             location: 0,
             metaKey: false,
@@ -656,16 +706,17 @@ describe('src/cy/commands/actions/type', () => {
       it('receives textInput event', (done) => {
         const $txt = cy.$$(':text:first')
 
-        $txt.on('textInput', (e) => {
-          const obj = _.pick(e.originalEvent, 'bubbles', 'cancelable', 'charCode', 'data', 'detail', 'keyCode', 'layerX', 'layerY', 'pageX', 'pageY', 'type', 'view', 'which')
-
-          expect(obj).to.deep.eq({
+        $txt[0].addEventListener('textInput', (e) => {
+          // FIXME: (firefox) firefox cannot access window objects else throw cross-origin error
+          expect(Object.prototype.toString.call(e.view)).eq('[object Window]')
+          e.view = null
+          expect(_.toPlainObject(e)).to.include({
             bubbles: true,
             cancelable: true,
             data: 'a',
             detail: 0,
             type: 'textInput',
-            view: cy.state('window'),
+            // view: cy.state('window'),
             which: 0,
           })
 
@@ -706,7 +757,7 @@ describe('src/cy/commands/actions/type', () => {
         .invoke('val', 'bar')
         .type('{selectAll}{rightarrow}{backspace}')
         .then(() => {
-          expect(onInput).to.be.calledOnce
+          expect(onInput).calledOnce
         })
         .then(() => {
           onInput.reset()
@@ -716,7 +767,7 @@ describe('src/cy/commands/actions/type', () => {
         .invoke('val', 'bar')
         .type('{selectAll}{leftarrow}{del}')
         .then(() => {
-          expect(onInput).to.be.calledOnce
+          expect(onInput).calledOnce
         })
         .then(() => {
           onInput.reset()
@@ -728,7 +779,7 @@ describe('src/cy/commands/actions/type', () => {
         .invoke('html', 'foobar')
         .type('{selectAll}{rightarrow}{backspace}')
         .then(() => {
-          expect(onInput).to.be.calledOnce
+          expect(onInput).calledOnce
         })
         .then(() => {
           onInput.reset()
@@ -738,7 +789,7 @@ describe('src/cy/commands/actions/type', () => {
         .invoke('html', 'foobar')
         .type('{selectAll}{leftarrow}{del}')
         .then(() => {
-          expect(onInput).to.be.calledOnce
+          expect(onInput).calledOnce
         })
       })
 
@@ -826,7 +877,6 @@ describe('src/cy/commands/actions/type', () => {
         })
       })
 
-      // https://github.com/cypress-io/cypress/issues/4587
       it('borrows property getter from outer frame for input', () => {
         const $input = cy.$$(':text:first')
 
@@ -964,19 +1014,6 @@ describe('src/cy/commands/actions/type', () => {
         cy.$$('#input-without-value').val('0').click(function () {
           $(this).select()
         })
-      })
-
-      // https://github.com/cypress-io/cypress/issues/5456
-      it('respects changed selection in focus handler', () => {
-        cy.get('#input-without-value')
-        .then(($el) => {
-          $el.val('foo')
-          .on('focus', function (e) {
-            e.currentTarget.setSelectionRange(0, 1)
-          })
-        })
-        .type('bar')
-        .should('have.value', 'baroo')
       })
 
       it('overwrites text when selectAll in mouseup handler', () => {
@@ -1215,9 +1252,7 @@ describe('src/cy/commands/actions/type', () => {
           .then(($el) => $el.on('input', sentInput))
           .type('{selectAll}{del}')
           .should('have.value', '')
-          .then(() => {
-            expect(sentInput).to.be.calledOnce
-          })
+          .then(() => expect(sentInput).calledOnce)
         })
 
         it('can type {selectAll}{del} without sending input event', () => {
@@ -1227,12 +1262,9 @@ describe('src/cy/commands/actions/type', () => {
           .then(($el) => $el.on('input', sentInput))
           .type('{selectAll}{del}')
           .should('have.value', '')
-          .then(() => {
-            expect(sentInput).not.to.be.called
-          })
+          .then(() => expect(sentInput).not.called)
         })
 
-        // https://github.com/cypress-io/cypress/issues/4767
         it('can type negative numbers with currently active selection', () => {
           cy.get('#number-without-value')
           .type('999')
@@ -1242,14 +1274,16 @@ describe('src/cy/commands/actions/type', () => {
         })
 
         it('type=number blurs consistently', () => {
-          const blurred = cy.stub()
+          let blurred = 0
 
-          cy.$$('#number-without-value').blur(blurred)
+          cy.$$('#number-without-value').blur(() => {
+            return blurred++
+          })
 
           cy.get('#number-without-value')
           .type('200').blur()
           .then(() => {
-            expect(blurred).to.be.calledOnce
+            expect(blurred).to.eq(1)
           })
         })
       })
@@ -1294,14 +1328,16 @@ describe('src/cy/commands/actions/type', () => {
         })
 
         it('type=email blurs consistently', () => {
-          const blurred = cy.stub()
+          let blurred = 0
 
-          cy.$$('#email-without-value').blur(blurred)
+          cy.$$('#email-without-value').blur(() => {
+            blurred++
+          })
 
           cy.get('#email-without-value')
           .type('foo@bar.com').blur()
           .then(() => {
-            expect(blurred).to.be.calledOnce
+            expect(blurred).to.eq(1)
           })
         })
       })
@@ -1383,65 +1419,6 @@ describe('src/cy/commands/actions/type', () => {
         })
       })
 
-      // https://github.com/cypress-io/cypress/issues/3661
-      describe('various focusable elements', () => {
-        it('<select> element', () => {
-          let keydown = cy.stub()
-
-          cy.get('select:first')
-          .then(($el) => $el.on('keydown', keydown))
-          .type('foo')
-          .then(() => {
-            expect(keydown).calledThrice
-          })
-        })
-
-        it('<a> element', () => {
-          let keydown = cy.stub()
-
-          cy.get('a:first')
-          .then(($el) => $el.on('keydown', keydown))
-          .focus().type('foo')
-          .then(() => expect(keydown).calledThrice)
-        })
-
-        it('<area> element', () => {
-          cy.$$(`
-          <map name="map">
-          <area shape="circle" coords="0,0,100"
-          href="#"
-          target="_blank" alt="area" />
-          </map>
-          <img usemap="#map" src="/__cypress/static/favicon.ico" alt="image" />
-          `).prependTo(cy.$$('body'))
-
-          let keydown = cy.stub()
-
-          cy.get('area:first')
-          .then(($el) => $el.on('keydown', keydown))
-          .focus().type('foo')
-          .then(() => expect(keydown).calledThrice)
-        })
-
-        // https://github.com/cypress-io/cypress/issues/2166
-        it('<button> element', () => {
-          let keydown = cy.stub()
-          let click = cy.stub()
-
-          cy.get('button:first')
-          .then(($el) => {
-            $el.on('keydown', keydown)
-            $el.on('click', click)
-          })
-          .focus().type('foo')
-          .then(() => {
-            expect(keydown).calledThrice
-            expect(click).not.called
-          })
-        })
-      })
-
-      // https://github.com/cypress-io/cypress/issues/2613
       describe('input[type=datetime-local]', () => {
         it('can change values', () => {
           cy.get('[type="datetime-local"]').type('1959-09-13T10:10').should('have.value', '1959-09-13T10:10')
@@ -1453,16 +1430,6 @@ describe('src/cy/commands/actions/type', () => {
 
         it('overwrites existing value input by invoking val', () => {
           cy.get('[type="datetime-local"]').invoke('val', '2016-01-01T05:05').type('1959-09-13T10:10').should('have.value', '1959-09-13T10:10')
-        })
-
-        it('errors when invalid datetime', (done) => {
-          cy.on('fail', (err) => {
-            expect(err.message).contain('datetime')
-            expect(err.message).contain('yyyy-MM-ddThh:mm')
-            done()
-          })
-
-          cy.get('[type="datetime-local"]').invoke('val', '2016-01-01T05:05').type('1959-09-13')
         })
       })
 
@@ -1581,8 +1548,8 @@ describe('src/cy/commands/actions/type', () => {
           .type('\n').then(($text) => {
             expect(trimInnerText($text)).eq('foo')
           })
-          .then(() => expect(onInput).to.be.calledOnce)
-          .then(() => expect(onTextInput).to.be.calledOnce)
+          .then(() => expect(onInput).calledOnce)
+          .then(() => expect(onTextInput).calledOnce)
         })
 
         it('can type into [contenteditable] with existing <div>', () => {
@@ -1597,7 +1564,7 @@ describe('src/cy/commands/actions/type', () => {
           })
         })
 
-        it('can type into [contenteditable] with existing <p>', () => {
+        it('can type into [contenteditable] with existing text', () => {
           cy.$$('[contenteditable]:first').get(0).innerHTML = '<p>foo</p>'
 
           cy.get('[contenteditable]:first')
@@ -1610,16 +1577,17 @@ describe('src/cy/commands/actions/type', () => {
         })
 
         it('collapses selection to start on {leftarrow}', () => {
-          cy.$$('[contenteditable]:first').get(0).innerHTML = '<div>bar</div>'
+          cy.$$('[contenteditable]:first').get(0).innerHTML = 'bar'
 
           cy.get('[contenteditable]:first')
-          .type('{selectall}{leftarrow}foo').then(($div) => {
+          .type('{selectall}{leftarrow}foo')
+          .then(($div) => {
             expect(trimInnerText($div)).to.eql('foobar')
           })
         })
 
         it('collapses selection to end on {rightarrow}', () => {
-          cy.$$('[contenteditable]:first').get(0).innerHTML = '<div>bar</div>'
+          cy.$$('[contenteditable]:first').get(0).innerHTML = 'bar'
 
           cy.get('[contenteditable]:first')
           .type('{selectall}{leftarrow}foo{selectall}{rightarrow}baz').then(($div) => {
@@ -1631,8 +1599,10 @@ describe('src/cy/commands/actions/type', () => {
           cy.$$('[contenteditable]:first').get(0).innerHTML = '<div><br></div>'
 
           cy.get('[contenteditable]:first')
-          .type('foobar').then(($div) => {
-            expect($div.get(0).innerHTML).to.eql('<div>foobar</div>')
+          .type('foobar')
+
+          .then(($div) => {
+            expect(trimInnerText($div)).eq('foobar')
           })
         })
 
@@ -1674,46 +1644,24 @@ describe('src/cy/commands/actions/type', () => {
         })
       })
 
-      // type follows focus
-      // https://github.com/cypress-io/cypress/issues/2240
+      // TODO: fix this with 4.0 updates
       describe('element reference loss', () => {
         it('follows the focus of the cursor', () => {
-          cy.$$('input:first').keydown(_.after(4, () => {
-            cy.$$('input').eq(1).focus()
-          }))
+          let charCount = 0
+
+          cy.$$('input:first').keydown(() => {
+            if (charCount === 3) {
+              cy.$$('input').eq(1).focus()
+            }
+
+            charCount++
+          })
 
           cy.get('input:first').type('foobar').then(() => {
             cy.get('input:first').should('have.value', 'foo')
 
             cy.get('input').eq(1).should('have.value', 'bar')
           })
-        })
-
-        it('follows focus into date input', () => {
-          cy.$$('input:first').on('input', _.after(3, _.once((e) => {
-            cy.$$('input[type=date]:first').focus()
-          })))
-
-          cy.get('input:first')
-          .type('foo2010-10-10')
-          .should('have.value', 'foo')
-
-          cy.get('input[type=date]:first').should('have.value', '2010-10-10')
-        })
-
-        it('validates input after following focus change', (done) => {
-          cy.on('fail', (err) => {
-            expect(err.message).contain('fooBAR')
-            expect(err.message).contain('requires a valid date')
-            done()
-          })
-
-          cy.$$('input:first').on('input', _.after(3, (e) => {
-            cy.$$('input[type=date]:first').focus()
-          }))
-
-          cy.get('input:first')
-          .type('fooBAR')
         })
       })
     })
@@ -1844,19 +1792,15 @@ describe('src/cy/commands/actions/type', () => {
           })
         })
 
-        it('can delete all with {selectall}{backspace} in non-selectionrange element', () => {
-          cy.get('input[type=email]:first')
-          .should(($el) => $el.val('sdfsdf'))
-          .type('{selectall}{backspace}')
-          .should('have.value', '')
-        })
-
         it('can backspace a selection range of characters', () => {
           // select the 'ar' characters
           cy
-          .get(':text:first').invoke('val', 'bar').focus().then(($input) => {
+          .get(':text:first').invoke('val', 'bar')
+          .focus()
+          .should(($input) => {
             $input.get(0).setSelectionRange(1, 3)
-          }).get(':text:first').type('{backspace}').then(($input) => {
+          })
+          .type('{backspace}').then(($input) => {
             expect($input).to.have.value('b')
           })
         })
@@ -1955,7 +1899,7 @@ describe('src/cy/commands/actions/type', () => {
           .get(':text:first').invoke('val', 'bar').focus().then(($input) => {
             $input.get(0).setSelectionRange(0, 1)
           }).get(':text:first').type('{del}')
-          .then(() => expect(onInput).to.be.calledOnce)
+          .then(() => expect(onInput).calledOnce)
         })
 
         it('does not fire input event when value does not change', (done) => {
@@ -2349,7 +2293,8 @@ describe('src/cy/commands/actions/type', () => {
                       '<div>baz</div>'
 
           cy.get('[contenteditable]:first')
-          .type('{leftarrow}{leftarrow}{uparrow}11{uparrow}22{downarrow}{downarrow}33').then(($div) => {
+          .type('{leftarrow}{leftarrow}{uparrow}11{uparrow}22{downarrow}{downarrow}33')
+          .then(($div) => {
             expect(trimInnerText($div)).to.eql('foo22\nb11ar\nbaz33')
           })
         })
@@ -2381,7 +2326,8 @@ describe('src/cy/commands/actions/type', () => {
           cy.$$('textarea:first').get(0).value = 'foo\nbar\nbaz'
 
           cy.get('textarea:first')
-          .type('{leftarrow}{leftarrow}{uparrow}11{uparrow}22{downarrow}{downarrow}33').should('have.value', 'foo22\nb11ar\nbaz33')
+          .type('{leftarrow}{leftarrow}{uparrow}11{uparrow}22{downarrow}{downarrow}33')
+          .should('have.value', 'foo22\nb11ar\nbaz33')
         })
 
         it('increments input[type=number]', () => {
@@ -2468,6 +2414,12 @@ describe('src/cy/commands/actions/type', () => {
 
           cy.get('[contenteditable]:first')
           .type('{downarrow}22').then(($div) => {
+            if (Cypress.browser.family === 'firefox') {
+              expect(trimInnerText($div)).to.eq('foo22\nbar\nbaz')
+
+              return
+            }
+
             expect(trimInnerText($div)).to.eql('foo\n22bar\nbaz')
           })
         })
@@ -2543,7 +2495,7 @@ describe('src/cy/commands/actions/type', () => {
           })
         })
 
-        it('does not fire input event when no text inserted', (done) => {
+        it('does not fire input event', (done) => {
           cy.$$(':text:first').on('input', (e) => {
             done('input should not have fired')
           })
@@ -2553,30 +2505,26 @@ describe('src/cy/commands/actions/type', () => {
           })
         })
 
-        // https://github.com/cypress-io/cypress/issues/3405
-        it('does fire input event when text inserted', (done) => {
-          cy.$$('[contenteditable]:first').on('input', (e) => {
-            done()
-          })
-
-          cy.get('[contenteditable]:first').type('{enter}')
-        })
-
         it('inserts new line into textarea', () => {
           cy.get('#input-types textarea').invoke('val', 'foo').type('bar{enter}baz{enter}quux').then(($textarea) => {
             expect($textarea).to.have.value('foobar\nbaz\nquux')
           })
         })
 
-        it('inserts new line into [contenteditable] ', () => {
+        it('inserts new line into [contenteditable] ', function () {
           cy.get('#input-types [contenteditable]:first').invoke('text', 'foo')
           .type('bar{enter}baz{enter}{enter}{enter}quux').then(function ($div) {
             const conditionalNewLines = '\n\n'.repeat(this.multiplierNumNewLines)
 
+            if (Cypress.browser.family === 'firefox') {
+              expect(trimInnerText($div)).to.eql(`foobar\nbaz\n\n\nquux`)
+              expect($div.get(0).textContent).to.eql('foobarbazquux')
+
+              return
+            }
+
             expect(trimInnerText($div)).to.eql(`foobar\nbaz${conditionalNewLines}\nquux`)
             expect($div.get(0).textContent).to.eql('foobarbazquux')
-
-            expect($div.get(0).innerHTML).to.eql('foobar<div>baz</div><div><br></div><div><br></div><div>quux</div>')
           })
         })
 
@@ -2585,8 +2533,6 @@ describe('src/cy/commands/actions/type', () => {
           .type('bar{leftarrow}{enter}baz{leftarrow}{enter}quux').then(($div) => {
             expect(trimInnerText($div)).to.eql('fooba\nba\nquuxzr')
             expect($div.get(0).textContent).to.eql('foobabaquuxzr')
-
-            expect($div.get(0).innerHTML).to.eql('fooba<div>ba</div><div>quuxzr</div>')
           })
         })
       })
@@ -2860,18 +2806,6 @@ describe('src/cy/commands/actions/type', () => {
           })
         })
 
-        // https://github.com/cypress-io/cypress/issues/5439
-        it('do not replace selection during modifier key', () => {
-          cy
-          .get('input:first').type('123')
-          .then(($el) => {
-            $el[0].setSelectionRange(0, 3)
-          })
-          .type('{ctrl}')
-          .should('have.value', '123')
-        })
-
-        // sends keyboard events for modifiers https://github.com/cypress-io/cypress/issues/3316
         it('sends keyup event for activated modifiers when typing is finished', (done) => {
           const $input = cy.$$('input:text:first')
           const events = []
@@ -3080,83 +3014,95 @@ describe('src/cy/commands/actions/type', () => {
       })
 
       it('does not issue another click event between type/type', () => {
-        const clicked = cy.stub()
+        let clicked = 0
 
-        cy.$$(':text:first').click(clicked)
+        cy.$$(':text:first').click(() => {
+          clicked += 1
+        })
 
         cy.get(':text:first').type('f').type('o').then(() => {
-          expect(clicked).to.be.calledOnce
+          expect(clicked).to.eq(1)
         })
       })
 
       it('does not issue another click event if element is already in focus from click', () => {
-        const clicked = cy.stub()
+        let clicked = 0
 
-        cy.$$(':text:first').click(clicked)
+        cy.$$(':text:first').click(() => {
+          clicked += 1
+        })
 
         cy.get(':text:first').click().type('o').then(() => {
-          expect(clicked).to.be.calledOnce
+          expect(clicked).to.eq(1)
         })
       })
     })
 
     describe('change events', () => {
       it('fires when enter is pressed and value has changed', () => {
-        const changed = cy.stub()
+        let changed = 0
 
-        cy.$$(':text:first').change(changed)
+        cy.$$(':text:first').change(() => {
+          changed += 1
+        })
 
         cy.get(':text:first').invoke('val', 'foo').type('bar{enter}').then(() => {
-          expect(changed).to.be.calledOnce
+          expect(changed).to.eq(1)
         })
       })
 
       it('fires twice when enter is pressed and then again after losing focus', () => {
-        const changed = cy.stub()
+        let changed = 0
 
-        cy.$$(':text:first').change(changed)
+        cy.$$(':text:first').change(() => {
+          changed += 1
+        })
 
         cy.get(':text:first').invoke('val', 'foo').type('bar{enter}baz').blur().then(() => {
-          expect(changed).to.be.calledTwice
+          expect(changed).to.eq(2)
         })
       })
 
       it('fires when element loses focus due to another action (click)', () => {
-        const changed = cy.stub()
+        let changed = 0
 
-        cy.$$(':text:first').change(changed)
+        cy.$$(':text:first').change(() => {
+          changed += 1
+        })
 
         cy
         .get(':text:first').type('foo').then(() => {
-          expect(changed).not.to.be.called
-        })
-        .get('button:first').click().then(() => {
-          expect(changed).to.be.calledOnce
+          expect(changed).to.eq(0)
+        }).get('button:first').click().then(() => {
+          expect(changed).to.eq(1)
         })
       })
 
       it('fires when element loses focus due to another action (type)', () => {
-        const changed = cy.stub()
+        let changed = 0
 
-        cy.$$(':text:first').change(changed)
+        cy.$$(':text:first').change(() => {
+          changed += 1
+        })
 
         cy
         .get(':text:first').type('foo').then(() => {
-          expect(changed).not.to.be.called
-        })
-        .get('textarea:first').type('bar').then(() => {
-          expect(changed).to.be.calledOnce
+          expect(changed).to.eq(0)
+        }).get('textarea:first').type('bar').then(() => {
+          expect(changed).to.eq(1)
         })
       })
 
       it('fires when element is directly blurred', () => {
-        const changed = cy.stub()
+        let changed = 0
 
-        cy.$$(':text:first').change(changed)
+        cy.$$(':text:first').change(() => {
+          changed += 1
+        })
 
         cy
         .get(':text:first').type('foo').blur().then(() => {
-          expect(changed).to.be.calledOnce
+          expect(changed).to.eq(1)
         })
       })
 
@@ -3170,62 +3116,72 @@ describe('src/cy/commands/actions/type', () => {
       //     expect(changed).to.eq 1
 
       it('does not fire twice if element is already in focus between type/type', () => {
-        const changed = cy.stub()
+        let changed = 0
 
-        cy.$$(':text:first').change(changed)
+        cy.$$(':text:first').change(() => {
+          changed += 1
+        })
 
         cy.get(':text:first').invoke('val', 'foo').type('f').type('o{enter}').then(() => {
-          expect(changed).to.be.calledOnce
+          expect(changed).to.eq(1)
         })
       })
 
       it('does not fire twice if element is already in focus between clear/type', () => {
-        const changed = cy.stub()
+        let changed = 0
 
-        cy.$$(':text:first').change(changed)
+        cy.$$(':text:first').change(() => {
+          changed += 1
+        })
 
         cy.get(':text:first').invoke('val', 'foo').clear().type('o{enter}').then(() => {
-          expect(changed).to.be.calledOnce
+          expect(changed).to.eq(1)
         })
       })
 
       it('does not fire twice if element is already in focus between click/type', () => {
-        const changed = cy.stub()
+        let changed = 0
 
-        cy.$$(':text:first').change(changed)
+        cy.$$(':text:first').change(() => {
+          changed += 1
+        })
 
         cy.get(':text:first').invoke('val', 'foo').click().type('o{enter}').then(() => {
-          expect(changed).to.be.calledOnce
+          expect(changed).to.eq(1)
         })
       })
 
       it('does not fire twice if element is already in focus between type/click', () => {
-        const changed = cy.stub()
+        let changed = 0
 
-        cy.$$(':text:first').change(changed)
+        cy.$$(':text:first').change(() => {
+          changed += 1
+        })
 
         cy.get(':text:first').invoke('val', 'foo').type('d{enter}').click().then(() => {
-          expect(changed).to.be.calledOnce
+          expect(changed).to.eq(1)
         })
       })
 
       it('does not fire at all between clear/type/click', () => {
-        const changed = cy.stub()
+        let changed = 0
 
-        cy.$$(':text:first').change(changed)
+        cy.$$(':text:first').change(() => {
+          changed += 1
+        })
 
         cy.get(':text:first').invoke('val', 'foo').clear().type('o').click().then(($el) => {
-          expect(changed).not.to.be.called
+          expect(changed).to.eq(0)
 
           return $el
         }).blur()
         .then(() => {
-          expect(changed).to.be.calledOnce
+          expect(changed).to.eq(1)
         })
       })
 
       it('does not fire if {enter} is preventedDefault', () => {
-        const changed = cy.stub()
+        let changed = 0
 
         cy.$$(':text:first').keypress((e) => {
           if (e.which === 13) {
@@ -3233,49 +3189,59 @@ describe('src/cy/commands/actions/type', () => {
           }
         })
 
-        cy.$$(':text:first').change(changed)
+        cy.$$(':text:first').change(() => {
+          changed += 1
+        })
 
         cy.get(':text:first').invoke('val', 'foo').type('b{enter}').then(() => {
-          expect(changed).not.to.be.called
+          expect(changed).to.eq(0)
         })
       })
 
       it('does not fire when enter is pressed and value hasnt changed', () => {
-        const changed = cy.stub()
+        let changed = 0
 
-        cy.$$(':text:first').change(changed)
+        cy.$$(':text:first').change(() => {
+          changed += 1
+        })
 
         cy.get(':text:first').invoke('val', 'foo').type('b{backspace}{enter}').then(() => {
-          expect(changed).not.to.be.called
+          expect(changed).to.eq(0)
         })
       })
 
       it('does not fire at the end of the type', () => {
-        const changed = cy.stub()
+        let changed = 0
 
-        cy.$$(':text:first').change(changed)
+        cy.$$(':text:first').change(() => {
+          changed += 1
+        })
 
         cy
         .get(':text:first').type('foo').then(() => {
-          expect(changed).not.to.be.called
+          expect(changed).to.eq(0)
         })
       })
 
       it('does not fire change event if value hasnt actually changed', () => {
-        const changed = cy.stub()
+        let changed = 0
 
-        cy.$$(':text:first').change(changed)
+        cy.$$(':text:first').change(() => {
+          changed += 1
+        })
 
         cy
         .get(':text:first').invoke('val', 'foo').type('{backspace}{backspace}oo{enter}').blur().then(() => {
-          expect(changed).not.to.be.called
+          expect(changed).to.eq(0)
         })
       })
 
       it('does not fire if mousedown is preventedDefault which prevents element from losing focus', () => {
-        const changed = cy.stub()
+        let changed = 0
 
-        cy.$$(':text:first').change(changed)
+        cy.$$(':text:first').change(() => {
+          changed += 1
+        })
 
         cy.$$('textarea:first').mousedown(() => {
           return false
@@ -3284,94 +3250,108 @@ describe('src/cy/commands/actions/type', () => {
         cy
         .get(':text:first').invoke('val', 'foo').type('bar')
         .get('textarea:first').click().then(() => {
-          expect(changed).not.to.be.called
+          expect(changed).to.eq(0)
         })
       })
 
       it('does not fire hitting {enter} inside of a textarea', () => {
-        const changed = cy.stub()
+        let changed = 0
 
-        cy.$$('textarea:first').change(changed)
+        cy.$$('textarea:first').change(() => {
+          changed += 1
+        })
 
         cy
         .get('textarea:first').type('foo{enter}bar').then(() => {
-          expect(changed).not.to.be.called
+          expect(changed).to.eq(0)
         })
       })
 
       it('does not fire hitting {enter} inside of [contenteditable]', () => {
-        const changed = cy.stub()
+        let changed = 0
 
-        cy.$$('[contenteditable]:first').change(changed)
+        cy.$$('[contenteditable]:first').change(() => {
+          changed += 1
+        })
 
         cy
         .get('[contenteditable]:first').type('foo{enter}bar').then(() => {
-          expect(changed).not.to.be.called
+          expect(changed).to.eq(0)
         })
       })
 
       // [contenteditable] does not fire ANY change events ever.
       it('does not fire at ALL for [contenteditable]', () => {
-        const changed = cy.stub()
+        let changed = 0
 
-        cy.$$('[contenteditable]:first').change(changed)
+        cy.$$('[contenteditable]:first').change(() => {
+          changed += 1
+        })
 
         cy
         .get('[contenteditable]:first').type('foo')
         .get('button:first').click().then(() => {
-          expect(changed).not.to.be.called
+          expect(changed).to.eq(0)
         })
       })
 
       it('does not fire on .clear() without blur', () => {
-        const changed = cy.stub()
+        let changed = 0
 
-        cy.$$('input:first').change(changed)
+        cy.$$('input:first').change(() => {
+          changed += 1
+        })
 
         cy.get('input:first').invoke('val', 'foo')
         .clear()
         .then(($el) => {
-          expect(changed).not.to.be.called
+          expect(changed).to.eq(0)
 
           return $el
         }).type('foo')
         .blur()
         .then(() => {
-          expect(changed).not.to.be.called
+          expect(changed).to.eq(0)
         })
       })
 
       it('fires change for single value change inputs', () => {
-        const changed = cy.stub()
+        let changed = 0
 
-        cy.$$('input[type="date"]:first').change(changed)
+        cy.$$('input[type="date"]:first').change(() => {
+          return changed++
+        })
 
         cy.get('input[type="date"]:first')
         .type('1959-09-13')
         .blur()
         .then(() => {
-          expect(changed).to.be.calledOnce
+          expect(changed).to.eql(1)
         })
       })
 
       it('does not fire change for non-change single value input', () => {
-        const changed = cy.stub()
+        let changed = 0
 
-        cy.$$('input[type="date"]:first').change(changed)
+        cy.$$('input[type="date"]:first').change(() => {
+          return changed++
+        })
 
         cy.get('input[type="date"]:first')
         .invoke('val', '1959-09-13')
         .type('1959-09-13')
         .blur()
         .then(() => {
-          expect(changed).not.to.be.called
+          expect(changed).to.eql(0)
         })
       })
 
       it('does not fire change for type\'d change that restores value', () => {
-        const changed = cy.stub()
+        let changed = 0
 
-        cy.$$('input:first').change(changed)
+        cy.$$('input:first').change(() => {
+          return changed++
+        })
 
         cy.get('input:first')
         .invoke('val', 'foo')
@@ -3380,24 +3360,8 @@ describe('src/cy/commands/actions/type', () => {
         .type('{backspace}r')
         .blur()
         .then(() => {
-          expect(changed).not.to.be.called
+          expect(changed).to.eql(0)
         })
-      })
-    })
-
-    describe('single value change inputs', () => {
-      // https://github.com/cypress-io/cypress/issues/5476
-      it('fires all keyboard events', () => {
-        const els = {
-          $date: cy.$$('input[type=date]:first'),
-        }
-
-        attachKeyListeners(els)
-
-        cy.get('input[type=date]:first')
-        .type('2019-12-10')
-
-        cy.getAll('$date', keyEvents.join(' ')).each(shouldBeCalledWithCount(10))
       })
     })
 
@@ -3491,7 +3455,9 @@ describe('src/cy/commands/actions/type', () => {
 
           sel.addRange(range)
 
-          cy.get('div:contains(bar):last').type('new text').should('have.prop', 'innerText', 'new text')
+          cy.get('div:contains(bar):last').type('new text').should(($el) => {
+            expect(trimInnerText($el)).eq('new text')
+          })
         })
       })
 
@@ -3606,18 +3572,16 @@ describe('src/cy/commands/actions/type', () => {
         })
       })
 
-      it('can wrap cursor to next line in [contenteditable] with {rightarrow} and empty lines', function () {
+      it('can wrap cursor to next line in [contenteditable] with {rightarrow} and empty lines', () => {
         const $el = cy.$$('[contenteditable]:first')
         const el = $el.get(0)
 
-        el.innerHTML = `${'<div><br></div>'.repeat(4)}<div>end</div>`
-
-        const newLines = '\n\n\n'.repeat(this.multiplierNumNewLines)
+        el.innerText = `${'\n'.repeat(4)}end`
 
         cy.get('[contenteditable]:first')
         .type('{selectall}{leftarrow}')
         .type(`foobar${'{rightarrow}'.repeat(6)}[_I_]`).then(() => {
-          expect(trimInnerText($el)).to.eql(`foobar${newLines}\nen[_I_]d`)
+          expect(trimInnerText($el)).to.eql(`foobar\n\n\n\nen[_I_]d`)
         })
       })
 
@@ -3730,16 +3694,16 @@ describe('src/cy/commands/actions/type', () => {
         })
 
         it('triggers 2 form submit event', function () {
-          const submitted = cy.stub()
+          let submits = 0
 
           this.$forms.find('#single-input').submit((e) => {
             e.preventDefault()
 
-            submitted()
+            submits += 1
           })
 
           cy.get('#single-input input').type('f{enter}{enter}').then(() => {
-            expect(submitted).to.be.calledTwice
+            expect(submits).to.eq(2)
           })
         })
 
@@ -3852,7 +3816,7 @@ describe('src/cy/commands/actions/type', () => {
 
           cy.get('#no-buttons-and-only-one-input-allowing-implicit-submission input:first').type('f{enter}')
           cy.then(() => {
-            expect(submit).to.be.calledOnce
+            expect(submit).calledOnce
           })
         })
       })
@@ -3954,7 +3918,7 @@ describe('src/cy/commands/actions/type', () => {
           .type('foo{enter}')
 
           cy.then(() => {
-            expect(submit).to.be.calledOnce
+            expect(submit).calledOnce
           })
         })
 
@@ -4306,8 +4270,6 @@ describe('src/cy/commands/actions/type', () => {
           })
         })
 
-        // Updated not to input text when non-shift modifier is pressed
-        // https://github.com/cypress-io/cypress/issues/5424
         it('has a table of keys', () => {
           cy.get(':text:first').type('{cmd}{option}foo{enter}b{leftarrow}{del}{enter}')
           .then(function () {
@@ -4390,16 +4352,16 @@ describe('src/cy/commands/actions/type', () => {
       })
 
       it('throws when subject is not in the document', (done) => {
-        const typed = cy.stub()
+        let typed = 0
 
         const input = cy.$$('input:first').keypress((e) => {
-          typed()
+          typed += 1
 
           input.remove()
         })
 
         cy.on('fail', (err) => {
-          expect(typed).to.be.calledOnce
+          expect(typed).to.eq(1)
           expect(err.message).to.include('cy.type() failed because this element')
 
           done()
@@ -4484,6 +4446,22 @@ describe('src/cy/commands/actions/type', () => {
         cy.get('input:text:first').type('foo')
       })
 
+      it('throws when subject is disabled and force:true', function (done) {
+        cy.timeout(200)
+
+        cy.$$('input:text:first').prop('disabled', true)
+
+        cy.on('fail', (err) => {
+          // get + type logs
+          expect(this.logs.length).eq(2)
+          expect(err.message).to.include('cy.type() failed because it targeted a disabled element.')
+
+          done()
+        })
+
+        cy.get('input:text:first').type('foo', { force: true })
+      })
+
       it('throws when submitting within nested forms')
 
       it('logs once when not dom subject', function (done) {
@@ -4530,7 +4508,7 @@ describe('src/cy/commands/actions/type', () => {
         cy.on('fail', (err) => {
           expect(this.logs.length).to.eq(2)
 
-          const allChars = _.keys(Cypress.Keyboard.getKeymap()).join(', ')
+          const allChars = _.keys(cy.devices.keyboard.getKeymap()).join(', ')
 
           expect(err.message).to.eq(`Special character sequence: '{bar}' is not recognized. Available sequences are: ${allChars}
 
@@ -4585,11 +4563,11 @@ https://on.cypress.io/type`)
         })
       })
 
-      describe('naughty strings', () => {
+      describe('naughtly strings', () => {
         _.each(['Ω≈ç√∫˜µ≤≥÷', '2.2250738585072011e-308', '田中さんにあげて下さい',
           '<foo val=`bar\' />', '⁰⁴⁵₀₁₂', '🐵 🙈 🙉 🙊',
           '<script>alert(123)</script>', '$USER'], (val) => {
-          it(`allows typing some naughty strings (${val})`, () => {
+          it(`allows typing some naughtly strings (${val})`, () => {
             cy
             .get(':text:first').type(val)
             .should('have.value', val)
@@ -4636,12 +4614,14 @@ https://on.cypress.io/type`)
         // force the animation calculation to think we moving at a huge distance ;-)
         cy.stub(Cypress.utils, 'getDistanceBetween').returns(100000)
 
-        const keydown = cy.stub()
+        let keydowns = 0
 
-        cy.$$(':text:first').on('keydown', keydown)
+        cy.$$(':text:first').on('keydown', () => {
+          keydowns += 1
+        })
 
         cy.on('fail', (err) => {
-          expect(keydown).not.to.be.called
+          expect(keydowns).to.eq(0)
           expect(err.message).to.include('cy.type() could not be issued because this element is currently animating:\n')
 
           done()
@@ -4877,22 +4857,24 @@ https://on.cypress.io/type`)
     })
 
     it('waits until element is no longer disabled', () => {
-      const clicked = cy.stub()
       const textarea = cy.$$('#comments').val('foo bar').prop('disabled', true)
 
-      const retried = cy.stub()
+      let retried = false
+      let clicks = 0
 
-      textarea.on('click', clicked)
+      textarea.on('click', () => {
+        clicks += 1
+      })
 
       cy.on('command:retry', _.after(3, () => {
         textarea.prop('disabled', false)
-        retried()
+        retried = true
       }))
 
       cy.get('#comments').clear().then(() => {
-        expect(clicked).to.be.calledOnce
+        expect(clicks).to.eq(1)
 
-        expect(retried).to.be.called
+        expect(retried).to.be.true
       })
     })
 
@@ -4912,12 +4894,14 @@ https://on.cypress.io/type`)
       })
       .prependTo(cy.$$('body'))
 
-      const clicked = cy.stub()
+      let clicked = false
 
-      $input.on('click', clicked)
+      $input.on('click', () => {
+        clicked = true
+      })
 
       cy.get('#input-covered-in-span').clear({ force: true }).then(() => {
-        expect(clicked).to.be.called
+        expect(clicked).to.be.true
       })
     })
 
@@ -5027,16 +5011,16 @@ https://on.cypress.io/type`)
       })
 
       it('throws when subject is not in the document', (done) => {
-        const cleared = cy.stub()
+        let cleared = 0
 
         const input = cy.$$('input:first').val('123').keydown((e) => {
-          cleared()
+          cleared += 1
 
           input.remove()
         })
 
         cy.on('fail', (err) => {
-          expect(cleared).to.be.calledOnce
+          expect(cleared).to.eq(1)
           expect(err.message).to.include('cy.clear() failed because this element')
 
           done()
@@ -5152,6 +5136,7 @@ https://on.cypress.io/type`)
           padding: 5,
           display: 'inline-block',
           backgroundColor: 'yellow',
+          width: '120px',
         })
         .prependTo(cy.$$('body'))
 
