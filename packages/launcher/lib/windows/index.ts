@@ -49,6 +49,12 @@ function formEdgeCanaryAppPath () {
   return normalize(exe)
 }
 
+function formOperaAppPath () {
+  const exe = 'C:/Program Files (x86)/Opera/opera.exe'
+
+  return normalize(exe)
+}
+
 function formFirefoxAppPath () {
   const exe = 'C:/Program Files (x86)/Mozilla Firefox/firefox.exe'
 
@@ -88,6 +94,7 @@ interface WindowsBrowserPaths {
   chromium: NameToPath
   edgeDev: NameToPath
   edgeCanary: NameToPath
+  opera: NameToPath
   firefox: NameToPath
   ie: NameToPath
 }
@@ -98,6 +105,7 @@ const formPaths: WindowsBrowserPaths = {
   chromium: formChromiumAppPath,
   edgeDev: formEdgeDevAppPath,
   edgeCanary: formEdgeCanaryAppPath,
+  opera: formOperaAppPath,
   firefox: formFirefoxAppPath,
   firefoxDeveloperEdition: formFirefoxDeveloperEditionAppPath,
   firefoxNightly: formFirefoxNightlyAppPath,
