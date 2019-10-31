@@ -44,6 +44,14 @@ export const browsers: Browser[] = [
     profile: true,
     binary: 'edge-dev',
   },
+  {
+    name: 'opera',
+    family: 'chrome',
+    displayName: 'Opera',
+    versionRegex: /Opera (\S+)/,
+    profile: true,
+    binary: 'opera',
+  },
 ]
 
 /** starts a found browser and opens URL if given one */

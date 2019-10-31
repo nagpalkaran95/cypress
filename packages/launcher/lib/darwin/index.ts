@@ -29,6 +29,11 @@ const detectEdgeDev = partial(findApp, [
   'com.microsoft.Edge.Dev',
   'CFBundleShortVersionString',
 ])
+const detectOpera = partial(findApp, [
+  'Contents/MacOS/Opera',
+  'com.operasoftware.Opera',
+  'CFBundleShortVersionString',
+])
 
 type Detectors = {
   [index: string]: Function
@@ -40,6 +45,7 @@ const browsers: Detectors = {
   chromium: detectChromium,
   edgeDev: detectEdgeDev,
   edgeCanary: detectEdgeCanary,
+  opera: detectOpera,
 }
 
 export function getVersionString (path: string) {

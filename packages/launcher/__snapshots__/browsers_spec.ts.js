@@ -45,5 +45,13 @@ exports['browsers returns the expected list of browsers 1'] = [
     "versionRegex":{},
     "profile":true,
     "binary":"edge-dev"
+  },
+  {
+    "name":"opera",
+    "family":"chrome",
+    "displayName":"Opera",
+    "versionRegex":{},
+    "profile":true,
+    "binary":"opera"
   }
 ]
