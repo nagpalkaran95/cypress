@@ -3,15 +3,36 @@ import * as cp from 'child_process'
 import { Browser, FoundBrowser } from './types'
 
 /** list of the browsers we can detect and use by default */
-export const browsers: Browser[] = [
-  {
-    name: 'chrome',
+
+let chrome_versions: int[] = [66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78]
+let firefox_versions: int[] = [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70]
+
+let chromeBrowsers: Browser[] = []
+let firefoxBrowsers: Browser[] = []
+
+for (let chromeVer of chrome_versions) {
+  chromeBrowsers.push({
+    name: `chrome${chromeVer}`,
     family: 'chrome',
     displayName: 'Chrome',
     versionRegex: /Google Chrome (\S+)/,
     profile: true,
     binary: ['google-chrome', 'chrome', 'google-chrome-stable'],
-  },
+  })
+}
+
+for (let firefoxVer of firefox_versions) {
+  firefoxBrowsers.push({
+    name: `firefox${firefoxVer}`,
+    family: 'firefox',
+    displayName: 'Firefox',
+    versionRegex: /Firefox (\S+)/,
+    profile: true,
+    binary: 'firefox',
+  })
+}
+
+let otherBrowsers: Browser[] = [
   {
     name: 'chromium',
     family: 'chrome',
@@ -53,14 +74,6 @@ export const browsers: Browser[] = [
     binary: 'opera',
   },
   {
-    name: 'firefox',
-    family: 'firefox',
-    displayName: 'Firefox',
-    versionRegex: /Firefox (\S+)/,
-    profile: true,
-    binary: 'firefox',
-  },
-  {
     name: 'firefoxDeveloperEdition',
     family: 'firefox',
     displayName: 'Firefox Developer Edition',
@@ -77,6 +90,8 @@ export const browsers: Browser[] = [
     binary: 'firefox-nightly',
   },
 ]
+
+export const browsers = otherBrowsers.concat(chromeBrowsers, firefoxBrowsers)
 
 /** starts a found browser and opens URL if given one */
 export function launch (
