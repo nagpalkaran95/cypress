@@ -30,6 +30,22 @@ const detectFirefox68 = partial(findApp, ['firefox 68.0.app', 'Contents/MacOS/fi
 const detectFirefox69 = partial(findApp, ['firefox 69.0.app', 'Contents/MacOS/firefox-bin', 'org.mozilla.firefox', 'CFBundleShortVersionString'])
 const detectFirefox70 = partial(findApp, ['firefox 70.0.app', 'Contents/MacOS/firefox-bin', 'org.mozilla.firefox', 'CFBundleShortVersionString'])
 
+const detectOpera50 = partial(findApp, ['Opera 50.0.app', 'Contents/MacOS/Opera', 'com.operasoftware.Opera', 'CFBundleShortVersionString'])
+const detectOpera51 = partial(findApp, ['Opera 51.0.app', 'Contents/MacOS/Opera', 'com.operasoftware.Opera', 'CFBundleShortVersionString'])
+const detectOpera52 = partial(findApp, ['Opera 52.0.app', 'Contents/MacOS/Opera', 'com.operasoftware.Opera', 'CFBundleShortVersionString'])
+const detectOpera53 = partial(findApp, ['Opera 53.0.app', 'Contents/MacOS/Opera', 'com.operasoftware.Opera', 'CFBundleShortVersionString'])
+const detectOpera54 = partial(findApp, ['Opera 54.0.app', 'Contents/MacOS/Opera', 'com.operasoftware.Opera', 'CFBundleShortVersionString'])
+const detectOpera55 = partial(findApp, ['Opera 55.0.app', 'Contents/MacOS/Opera', 'com.operasoftware.Opera', 'CFBundleShortVersionString'])
+const detectOpera56 = partial(findApp, ['Opera 56.0.app', 'Contents/MacOS/Opera', 'com.operasoftware.Opera', 'CFBundleShortVersionString'])
+const detectOpera57 = partial(findApp, ['Opera 57.0.app', 'Contents/MacOS/Opera', 'com.operasoftware.Opera', 'CFBundleShortVersionString'])
+const detectOpera58 = partial(findApp, ['Opera 58.0.app', 'Contents/MacOS/Opera', 'com.operasoftware.Opera', 'CFBundleShortVersionString'])
+const detectOpera59 = partial(findApp, ['Opera 59.0.app', 'Contents/MacOS/Opera', 'com.operasoftware.Opera', 'CFBundleShortVersionString'])
+const detectOpera60 = partial(findApp, ['Opera 60.0.app', 'Contents/MacOS/Opera', 'com.operasoftware.Opera', 'CFBundleShortVersionString'])
+const detectOpera61 = partial(findApp, ['Opera 61.0.app', 'Contents/MacOS/Opera', 'com.operasoftware.Opera', 'CFBundleShortVersionString'])
+const detectOpera62 = partial(findApp, ['Opera 62.0.app', 'Contents/MacOS/Opera', 'com.operasoftware.Opera', 'CFBundleShortVersionString'])
+const detectOpera63 = partial(findApp, ['Opera 63.0.app', 'Contents/MacOS/Opera', 'com.operasoftware.Opera', 'CFBundleShortVersionString'])
+const detectOpera64 = partial(findApp, ['Opera 64.0.app', 'Contents/MacOS/Opera', 'com.operasoftware.Opera', 'CFBundleShortVersionString'])
+
 const detectCanary = partial(findApp, [
   'Google Chrome Canary.app',
   'Contents/MacOS/Google Chrome Canary',
@@ -52,12 +68,6 @@ const detectEdgeDev = partial(findApp, [
   'Microsoft Edge Dev.app',
   'Contents/MacOS/Microsoft Edge Dev',
   'com.microsoft.Edge.Dev',
-  'CFBundleShortVersionString',
-])
-const detectOpera = partial(findApp, [
-  'Opera.app',
-  'Contents/MacOS/Opera',
-  'com.operasoftware.Opera',
   'CFBundleShortVersionString',
 ])
 const detectFirefoxDeveloperEdition = partial(findApp, [
@@ -102,11 +112,25 @@ const browsers: Detectors = {
   firefox68: detectFirefox68,
   firefox69: detectFirefox69,
   firefox70: detectFirefox70,
+  opera50: detectOpera50,
+  opera51: detectOpera51,
+  opera52: detectOpera52,
+  opera53: detectOpera53,
+  opera54: detectOpera54,
+  opera55: detectOpera55,
+  opera56: detectOpera56,
+  opera57: detectOpera57,
+  opera58: detectOpera58,
+  opera59: detectOpera59,
+  opera60: detectOpera60,
+  opera61: detectOpera61,
+  opera62: detectOpera62,
+  opera63: detectOpera63,
+  opera64: detectOpera64,
   canary: detectCanary,
   chromium: detectChromium,
   edgeDev: detectEdgeDev,
   edgeCanary: detectEdgeCanary,
-  opera: detectOpera,
   firefoxDeveloperEdition: detectFirefoxDeveloperEdition,
   firefoxNightly: detectFirefoxNightly,
 }

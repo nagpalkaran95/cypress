@@ -4,11 +4,13 @@ import { Browser, FoundBrowser } from './types'
 
 /** list of the browsers we can detect and use by default */
 
-let chrome_versions: int[] = [66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78]
-let firefox_versions: int[] = [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70]
+let chrome_versions = [66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78]
+let firefox_versions = [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70]
+let opera_versions = [50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64]
 
 let chromeBrowsers: Browser[] = []
 let firefoxBrowsers: Browser[] = []
+let operaBrowsers: Browser[] = []
 
 for (let chromeVer of chrome_versions) {
   chromeBrowsers.push({
@@ -29,6 +31,17 @@ for (let firefoxVer of firefox_versions) {
     versionRegex: /Firefox (\S+)/,
     profile: true,
     binary: 'firefox',
+  })
+}
+
+for (let operaVer of opera_versions) {
+  operaBrowsers.push({
+    name: `opera${operaVer}`,
+    family: 'chrome',
+    displayName: 'Opera',
+    versionRegex: /Opera (\S+)/,
+    profile: true,
+    binary: 'opera',
   })
 }
 
@@ -66,14 +79,6 @@ let otherBrowsers: Browser[] = [
     binary: 'edge-dev',
   },
   {
-    name: 'opera',
-    family: 'chrome',
-    displayName: 'Opera',
-    versionRegex: /Opera (\S+)/,
-    profile: true,
-    binary: 'opera',
-  },
-  {
     name: 'firefoxDeveloperEdition',
     family: 'firefox',
     displayName: 'Firefox Developer Edition',
@@ -91,7 +96,7 @@ let otherBrowsers: Browser[] = [
   },
 ]
 
-export const browsers = otherBrowsers.concat(chromeBrowsers, firefoxBrowsers)
+export const browsers = otherBrowsers.concat(chromeBrowsers, firefoxBrowsers, operaBrowsers)
 
 /** starts a found browser and opens URL if given one */
 export function launch (
