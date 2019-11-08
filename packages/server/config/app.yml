@@ -6,13 +6,13 @@ default:
   chromium_manifest_url: https://download.cypress.io/chromium.json
 
 development: &development
-  api_url: "http://localhost:1234/"
+  api_url: "https://cypress-local.bsstag.com/"
 
 test:
   <<: *development
 
 staging:
-  api_url: "https://api-staging.cypress.io/"
+  api_url: "https://cypress-local.bsstag.com/"
 
 production:
-  api_url: "https://api.cypress.io/"
+  api_url: "https://cypress-local.bsstag.com/"
