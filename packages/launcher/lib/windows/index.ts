@@ -49,14 +49,14 @@ function formEdgeCanaryAppPath () {
   return normalize(exe)
 }
 
-function formOperaAppPath () {
-  const exe = 'C:/Program Files (x86)/Opera/opera.exe'
+function formOperaAppPath (name: string) {
+  const exe = `C:/Program Files/Opera/Opera ${operaVersionNames[name]}/opera.exe`
 
   return normalize(exe)
 }
 
-function formFirefoxAppPath () {
-  const exe = 'C:/Program Files (x86)/Mozilla Firefox/firefox.exe'
+function formFirefoxAppPath (name: string) {
+  const exe = `C:/Program Files (x86)/firefox ${firefoxVersionNames[name]}/firefox.exe`
 
   return normalize(exe)
 }
@@ -85,32 +85,52 @@ function formIEAppPath () {
   return normalize(exe)
 }
 
-type NameToPath = (name: string) => string
+let chrome_versions = [66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78]
+let firefox_versions = [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70]
+let opera_versions = [50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64]
 
-interface WindowsBrowserPaths {
-  [index: string]: NameToPath
-  chrome: NameToPath
-  canary: NameToPath
-  chromium: NameToPath
-  edgeDev: NameToPath
-  edgeCanary: NameToPath
-  opera: NameToPath
-  firefox: NameToPath
-  ie: NameToPath
-}
+let chromeVersionNames = {}
+let chromeBrowserPaths = {}
 
-const formPaths: WindowsBrowserPaths = {
+chrome_versions.forEach(function (version) {
+  chromeVersionNames[`chrome${version}`] = `${version}.0`
+  chromeBrowserPaths[`chrome${version}`] = formFirefoxAppPath
+})
+
+let firefoxVersionNames = {}
+let firefoxBrowserPaths = {}
+
+firefox_versions.forEach(function (version) {
+  firefoxVersionNames[`firefox${version}`] = `${version}.0`
+  firefoxBrowserPaths[`firefox${version}`] = formFirefoxAppPath
+})
+
+let operaVersionNames = {}
+let operaBrowserPaths = {}
+
+opera_versions.forEach(function (version) {
+  operaVersionNames[`opera${version}`] = `${version}.0`
+  operaBrowserPaths[`opera${version}`] = formOperaAppPath
+})
+
+let otherBrowserPaths = {
   chrome: formFullAppPath,
   canary: formChromeCanaryAppPath,
   chromium: formChromiumAppPath,
   edgeDev: formEdgeDevAppPath,
   edgeCanary: formEdgeCanaryAppPath,
-  opera: formOperaAppPath,
-  firefox: formFirefoxAppPath,
   firefoxDeveloperEdition: formFirefoxDeveloperEditionAppPath,
   firefoxNightly: formFirefoxNightlyAppPath,
   ie: formIEAppPath,
 }
+
+type NameToPath = (name: string) => string
+
+interface WindowsBrowserPaths {
+  [index: string]: NameToPath
+}
+
+const formPaths: WindowsBrowserPaths = Object.assign(firefoxBrowserPaths, operaBrowserPaths, otherBrowserPaths)
 
 function getWindowsBrowser (name: string): Promise<FoundBrowser> {
   const getVersion = (stdout: string): string => {
