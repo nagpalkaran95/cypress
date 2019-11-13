@@ -55,6 +55,12 @@ function formOperaAppPath (name: string) {
   return normalize(exe)
 }
 
+function formChromeAppPath (name: string) {
+  const exe = `C:/Program Files (x86)/Google/Chrome/Application/${chromeVersionNames[name]}.[\d+.]*/chrome.exe`
+
+  return normalize(exe)
+}
+
 function formFirefoxAppPath (name: string) {
   const exe = `C:/Program Files (x86)/firefox ${firefoxVersionNames[name]}/firefox.exe`
 
@@ -93,8 +99,8 @@ let chromeVersionNames = {}
 let chromeBrowserPaths = {}
 
 chrome_versions.forEach(function (version) {
-  chromeVersionNames[`chrome${version}`] = `${version}.0`
-  chromeBrowserPaths[`chrome${version}`] = formFirefoxAppPath
+  chromeVersionNames[`chrome${version}`] = version
+  chromeBrowserPaths[`chrome${version}`] = formChromeAppPath
 })
 
 let firefoxVersionNames = {}
@@ -130,7 +136,7 @@ interface WindowsBrowserPaths {
   [index: string]: NameToPath
 }
 
-const formPaths: WindowsBrowserPaths = Object.assign(firefoxBrowserPaths, operaBrowserPaths, otherBrowserPaths)
+const formPaths: WindowsBrowserPaths = Object.assign(chromeBrowserPaths, firefoxBrowserPaths, operaBrowserPaths, otherBrowserPaths)
 
 function getWindowsBrowser (name: string): Promise<FoundBrowser> {
   const getVersion = (stdout: string): string => {
