@@ -56,7 +56,7 @@ function formOperaAppPath (name: string) {
 }
 
 function formChromeAppPath (name: string) {
-  const exe = `C:/Program Files (x86)/Google/Chrome/Application/${chromeVersionNames[name]}.[\d+.]*/chrome.exe`
+  const exe = `C:/Program Files (x86)/Google/Chrome/Application/${chromeVersionNames[name]}/chrome.exe`
 
   return normalize(exe)
 }
@@ -97,9 +97,24 @@ let opera_versions = [50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64
 
 let chromeVersionNames = {}
 let chromeBrowserPaths = {}
+let chromeBrowserFullVersion = {
+  66.0: '66.0.3359.117',
+  67.0: '67.0.3396.62',
+  68.0: '68.0.3440.70',
+  69.0: '69.0.3497.81',
+  70.0: '70.0.3538.67',
+  71.0: '71.0.3578.80',
+  72.0: '72.0.3626.81',
+  73.0: '73.0.3683.75',
+  74.0: '74.0.3729.108',
+  75.0: '75.0.3770.80',
+  76.0: '76.0.3809.87',
+  77.0: '77.0.3865.75',
+  78.0: '78.0.3904.70',
+}
 
 chrome_versions.forEach(function (version) {
-  chromeVersionNames[`chrome${version}`] = version
+  chromeVersionNames[`chrome${version}`] = chromeBrowserFullVersion[version]
   chromeBrowserPaths[`chrome${version}`] = formChromeAppPath
 })
 
