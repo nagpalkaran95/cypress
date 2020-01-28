@@ -34,17 +34,8 @@ function formChromeCanaryAppPath () {
   return normalize(exe)
 }
 
-function formEdgeCanaryAppPath () {
-  const home = homedir()
-  const exe = join(
-    home,
-    'AppData',
-    'Local',
-    'Microsoft',
-    'Edge SxS',
-    'Application',
-    'msedge.exe'
-  )
+function formEdgeCanaryAppPath (name: string) {
+  const exe = `C:/Program Files (x86)/Microsoft/Edge/Application/${edgeVersionNames[name]}/msedge.exe`
 
   return normalize(exe)
 }
@@ -94,6 +85,7 @@ function formIEAppPath () {
 let chrome_versions = [66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78]
 let firefox_versions = [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70]
 let opera_versions = [50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64]
+let edge_versions = [79]
 
 let chromeVersionNames = {}
 let chromeBrowserPaths = {}
@@ -134,12 +126,22 @@ opera_versions.forEach(function (version) {
   operaBrowserPaths[`opera${version}`] = formOperaAppPath
 })
 
+let edgeVersionNames = {}
+let edgeBrowserPaths = {}
+let edgeBrowserFullVersion = {
+  79.0: '79.0.309.71',
+}
+
+edge_versions.forEach(function (version) {
+  edgeVersionNames[`edge${version}`] = edgeBrowserFullVersion[version]
+  edgeBrowserPaths[`edge${version}`] = formEdgeCanaryAppPath
+})
+
 let otherBrowserPaths = {
   chrome: formFullAppPath,
   canary: formChromeCanaryAppPath,
   chromium: formChromiumAppPath,
   edgeDev: formEdgeDevAppPath,
-  edgeCanary: formEdgeCanaryAppPath,
   firefoxDeveloperEdition: formFirefoxDeveloperEditionAppPath,
   firefoxNightly: formFirefoxNightlyAppPath,
   ie: formIEAppPath,
@@ -151,7 +153,7 @@ interface WindowsBrowserPaths {
   [index: string]: NameToPath
 }
 
-const formPaths: WindowsBrowserPaths = Object.assign(chromeBrowserPaths, firefoxBrowserPaths, operaBrowserPaths, otherBrowserPaths)
+const formPaths: WindowsBrowserPaths = Object.assign(chromeBrowserPaths, firefoxBrowserPaths, operaBrowserPaths, edgeBrowserPaths, otherBrowserPaths)
 
 function getWindowsBrowser (name: string): Promise<FoundBrowser> {
   const getVersion = (stdout: string): string => {
