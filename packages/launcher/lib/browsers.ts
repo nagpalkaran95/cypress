@@ -7,10 +7,12 @@ import { Browser, FoundBrowser } from './types'
 let chrome_versions = [66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78]
 let firefox_versions = [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70]
 let opera_versions = [50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64]
+let edge_versions = [79]
 
 let chromeBrowsers: Browser[] = []
 let firefoxBrowsers: Browser[] = []
 let operaBrowsers: Browser[] = []
+let edgeBrowsers: Browser[] = []
 
 for (let chromeVer of chrome_versions) {
   chromeBrowsers.push({
@@ -45,6 +47,17 @@ for (let operaVer of opera_versions) {
   })
 }
 
+for (let edgeVer of edge_versions) {
+  edgeBrowsers.push({
+    name: `edge${edgeVer}`,
+    family: 'chrome',
+    displayName: 'Edge Canary',
+    versionRegex: /Microsoft Edge (\S+)/,
+    profile: true,
+    binary: 'edge-canary',
+  })
+}
+
 let otherBrowsers: Browser[] = [
   {
     name: 'chromium',
@@ -61,14 +74,6 @@ let otherBrowsers: Browser[] = [
     versionRegex: /Google Chrome Canary (\S+)/,
     profile: true,
     binary: 'google-chrome-canary',
-  },
-  {
-    name: 'edgeCanary',
-    family: 'chrome',
-    displayName: 'Edge Canary',
-    versionRegex: /Microsoft Edge Canary (\S+)/,
-    profile: true,
-    binary: 'edge-canary',
   },
   {
     name: 'edgeDev',
@@ -96,7 +101,7 @@ let otherBrowsers: Browser[] = [
   },
 ]
 
-export const browsers = otherBrowsers.concat(chromeBrowsers, firefoxBrowsers, operaBrowsers)
+export const browsers = otherBrowsers.concat(chromeBrowsers, firefoxBrowsers, operaBrowsers, edgeBrowsers)
 
 /** starts a found browser and opens URL if given one */
 export function launch (
