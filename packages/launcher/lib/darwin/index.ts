@@ -17,6 +17,7 @@ const detectChrome75 = partial(findApp, ['GoogleChrome75.app', 'Contents/MacOS/G
 const detectChrome76 = partial(findApp, ['GoogleChrome76.app', 'Contents/MacOS/Google Chrome', 'com.google.Chrome', 'KSVersion'])
 const detectChrome77 = partial(findApp, ['GoogleChrome77.app', 'Contents/MacOS/Google Chrome', 'com.google.Chrome', 'KSVersion'])
 const detectChrome78 = partial(findApp, ['GoogleChrome78.app', 'Contents/MacOS/Google Chrome', 'com.google.Chrome', 'KSVersion'])
+const detectChrome79 = partial(findApp, ['GoogleChrome79.app', 'Contents/MacOS/Google Chrome', 'com.google.Chrome', 'KSVersion'])
 
 const detectFirefox60 = partial(findApp, ['firefox 60.0.app', 'Contents/MacOS/firefox-bin', 'org.mozilla.firefox', 'CFBundleShortVersionString'])
 const detectFirefox61 = partial(findApp, ['firefox 61.0.app', 'Contents/MacOS/firefox-bin', 'org.mozilla.firefox', 'CFBundleShortVersionString'])
@@ -29,6 +30,8 @@ const detectFirefox67 = partial(findApp, ['firefox 67.0.app', 'Contents/MacOS/fi
 const detectFirefox68 = partial(findApp, ['firefox 68.0.app', 'Contents/MacOS/firefox-bin', 'org.mozilla.firefox', 'CFBundleShortVersionString'])
 const detectFirefox69 = partial(findApp, ['firefox 69.0.app', 'Contents/MacOS/firefox-bin', 'org.mozilla.firefox', 'CFBundleShortVersionString'])
 const detectFirefox70 = partial(findApp, ['firefox 70.0.app', 'Contents/MacOS/firefox-bin', 'org.mozilla.firefox', 'CFBundleShortVersionString'])
+const detectFirefox71 = partial(findApp, ['firefox 71.0.app', 'Contents/MacOS/firefox-bin', 'org.mozilla.firefox', 'CFBundleShortVersionString'])
+const detectFirefox72 = partial(findApp, ['firefox 72.0.app', 'Contents/MacOS/firefox-bin', 'org.mozilla.firefox', 'CFBundleShortVersionString'])
 
 const detectOpera50 = partial(findApp, ['Opera 50.0.app', 'Contents/MacOS/Opera', 'com.operasoftware.Opera', 'CFBundleShortVersionString'])
 const detectOpera51 = partial(findApp, ['Opera 51.0.app', 'Contents/MacOS/Opera', 'com.operasoftware.Opera', 'CFBundleShortVersionString'])
@@ -101,6 +104,7 @@ const browsers: Detectors = {
   chrome76: detectChrome76,
   chrome77: detectChrome77,
   chrome78: detectChrome78,
+  chrome79: detectChrome79,
   firefox60: detectFirefox60,
   firefox61: detectFirefox61,
   firefox62: detectFirefox62,
@@ -112,6 +116,8 @@ const browsers: Detectors = {
   firefox68: detectFirefox68,
   firefox69: detectFirefox69,
   firefox70: detectFirefox70,
+  firefox71: detectFirefox71,
+  firefox72: detectFirefox72,
   opera50: detectOpera50,
   opera51: detectOpera51,
   opera52: detectOpera52,

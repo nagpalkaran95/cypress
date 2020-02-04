@@ -4,8 +4,8 @@ import { Browser, FoundBrowser } from './types'
 
 /** list of the browsers we can detect and use by default */
 
-let chrome_versions = [66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78]
-let firefox_versions = [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70]
+let chrome_versions = [66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79]
+let firefox_versions = [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72]
 let opera_versions = [50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64]
 let edge_versions = [79]
 

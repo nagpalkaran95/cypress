@@ -82,8 +82,8 @@ function formIEAppPath () {
   return normalize(exe)
 }
 
-let chrome_versions = [66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78]
-let firefox_versions = [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70]
+let chrome_versions = [66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79]
+let firefox_versions = [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72]
 let opera_versions = [50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64]
 let edge_versions = [79]
 
@@ -103,6 +103,7 @@ let chromeBrowserFullVersion = {
   76.0: '76.0.3809.87',
   77.0: '77.0.3865.75',
   78.0: '78.0.3904.70',
+  79.0: '79.0.3945.36',
 }
 
 chrome_versions.forEach(function (version) {
