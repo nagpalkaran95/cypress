@@ -4,17 +4,68 @@ import { Browser, FoundBrowser } from './types'
 
 const firefoxInfo = 'Firefox support is currently in beta! You can help us continue to improve the Cypress + Firefox experience by [reporting any issues you find](https://on.cypress.io/new-issue).'
 
-/** list of the browsers we can detect and use by default */
-export const browsers: Browser[] = [
-  {
-    name: 'chrome',
+let chrome_versions = [66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79]
+let firefox_versions = [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72]
+let opera_versions = [50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64]
+let edge_versions = [79]
+
+let chromeBrowsers: Browser[] = []
+let firefoxBrowsers: Browser[] = []
+let operaBrowsers: Browser[] = []
+let edgeBrowsers: Browser[] = []
+
+for (let chromeVer of chrome_versions) {
+  chromeBrowsers.push({
+    name: `chrome${chromeVer}`,
     family: 'chromium',
     channel: 'stable',
     displayName: 'Chrome',
     versionRegex: /Google Chrome (\S+)/,
     profile: true,
     binary: ['google-chrome', 'chrome', 'google-chrome-stable'],
-  },
+  })
+}
+
+for (let firefoxVer of firefox_versions) {
+  firefoxBrowsers.push({
+    name: `firefox${firefoxVer}`,
+    family: 'firefox',
+    channel: 'stable',
+    displayName: 'Firefox',
+    info: firefoxInfo,
+    // Mozilla Firefox 70.0.1
+    versionRegex: /^Mozilla Firefox ([^\sab]+)$/,
+    profile: true,
+    binary: 'firefox',
+  })
+}
+
+for (let operaVer of opera_versions) {
+  operaBrowsers.push({
+    name: `opera${operaVer}`,
+    family: 'chromium',
+    channel: 'stable',
+    displayName: 'Opera',
+    versionRegex: /Opera (\S+)/,
+    profile: true,
+    binary: 'opera',
+  })
+}
+
+for (let edgeVer of edge_versions) {
+  edgeBrowsers.push({
+    name: `edge${edgeVer}`,
+    family: 'chromium',
+    channel: 'stable',
+    displayName: 'Edge Canary',
+    versionRegex: /Microsoft Edge (\S+)/,
+    profile: true,
+    binary: 'edge-canary',
+  })
+}
+
+/** list of the browsers we can detect and use by default */
+let otherBrowsers: Browser[] = [
   {
     name: 'chromium',
     family: 'chromium',
@@ -33,17 +84,6 @@ export const browsers: Browser[] = [
     versionRegex: /Google Chrome Canary (\S+)/,
     profile: true,
     binary: 'google-chrome-canary',
-  },
-  {
-    name: 'firefox',
-    family: 'firefox',
-    channel: 'stable',
-    displayName: 'Firefox',
-    info: firefoxInfo,
-    // Mozilla Firefox 70.0.1
-    versionRegex: /^Mozilla Firefox ([^\sab]+)$/,
-    profile: true,
-    binary: 'firefox',
   },
   {
     name: 'firefox',
@@ -68,15 +108,6 @@ export const browsers: Browser[] = [
     profile: true,
     // ubuntu PPAs install it as firefox-trunk
     binary: ['firefox-nightly', 'firefox-trunk'],
-  },
-  {
-    name: 'edge',
-    family: 'chromium',
-    channel: 'stable',
-    displayName: 'Edge',
-    versionRegex: /Microsoft Edge (\S+)/,
-    profile: true,
-    binary: 'edge',
   },
   {
     name: 'edge',
@@ -106,6 +137,8 @@ export const browsers: Browser[] = [
     binary: 'edge-dev',
   },
 ]
+
+export const browsers = otherBrowsers.concat(chromeBrowsers, firefoxBrowsers, operaBrowsers, edgeBrowsers)
 
 /** starts a found browser and opens URL if given one */
 export function launch (

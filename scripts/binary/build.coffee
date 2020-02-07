@@ -358,9 +358,9 @@ buildCypressApp = (platform, version, options = {}) ->
   .then(elBuilder) # should we delete everything in the buildDir()?
   .then(removeDevElectronApp)
   .then(testVersion(buildAppDir))
-  .then(runSmokeTests)
-  .then(codeSign) ## codesign after running smoke tests due to changing .cy
-  .then(verifyAppCanOpen)
+  # .then(runSmokeTests)
+  # .then(codeSign) ## codesign after running smoke tests due to changing .cy
+  # .then(verifyAppCanOpen)
   .then(printPackageSizes)
   .return({
     buildDir: buildDir()
