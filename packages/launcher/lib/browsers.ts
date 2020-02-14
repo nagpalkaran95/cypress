@@ -67,6 +67,15 @@ for (let edgeVer of edge_versions) {
 /** list of the browsers we can detect and use by default */
 let otherBrowsers: Browser[] = [
   {
+    name: 'chrome',
+    family: 'chromium',
+    channel: 'stable',
+    displayName: 'Chrome',
+    versionRegex: /Google Chrome (\S+)/,
+    profile: true,
+    binary: ['google-chrome', 'chrome', 'google-chrome-stable'],
+  },
+  {
     name: 'chromium',
     family: 'chromium',
     // technically Chromium is always in development
@@ -84,6 +93,17 @@ let otherBrowsers: Browser[] = [
     versionRegex: /Google Chrome Canary (\S+)/,
     profile: true,
     binary: 'google-chrome-canary',
+  },
+  {
+    name: 'firefox',
+    family: 'firefox',
+    channel: 'stable',
+    displayName: 'Firefox',
+    info: firefoxInfo,
+    // Mozilla Firefox 70.0.1
+    versionRegex: /^Mozilla Firefox ([^\sab]+)$/,
+    profile: true,
+    binary: 'firefox',
   },
   {
     name: 'firefox',
