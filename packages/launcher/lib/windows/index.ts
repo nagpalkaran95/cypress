@@ -68,12 +68,6 @@ function formEdgeCanaryAppPath () {
   return [normalize(exe)]
 }
 
-function formEdgeAppPath (name: string) {
-  const exe = `C:/Program Files (x86)/Microsoft/Edge/Application/${edgeVersionNames[name]}/msedge.exe`
-
-  return [normalize(exe)]
-}
-
 function formOperaAppPath (name: string) {
   const exe = `C:/Program Files/Opera/Opera ${operaVersionNames[name]}/opera.exe`
 
@@ -102,9 +96,9 @@ const formPaths: WindowsBrowserPaths = {
     nightly: formFirefoxNightlyAppPath,
   },
   edge: {
-    stable: formEdgeAppPath,
-    beta: () => [normalize('C:/Program Files (x86)/Microsoft/Edge Beta/Application/msedge.exe')],
-    dev: () => [normalize('C:/Program Files (x86)/Microsoft/Edge Dev/Application/msedge.exe')],
+    stable: () => [normalize('C:/Program Files/Microsoft/Edge/Application/msedge.exe')],
+    beta: () => [normalize('C:/Program Files/Microsoft/Edge Beta/Application/msedge.exe')],
+    dev: () => [normalize('C:/Program Files/Microsoft/Edge Dev/Application/msedge.exe')],
     canary: formEdgeCanaryAppPath,
   },
   opera: {
@@ -115,7 +109,6 @@ const formPaths: WindowsBrowserPaths = {
 let chrome_versions = [66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79]
 let firefox_versions = [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72]
 let opera_versions = [50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64]
-let edge_versions = [79]
 
 let chromeVersionNames = {}
 let chromeBrowserPaths = {}
@@ -154,18 +147,7 @@ let operaBrowserPaths = {}
 
 opera_versions.forEach(function (version) {
   operaVersionNames[`opera${version}`] = `${version}.0`
-  operaBrowserPaths[`opera${version}`] = formEdgeAppPath
-})
-
-let edgeVersionNames = {}
-let edgeBrowserPaths = {}
-let edgeBrowserFullVersion = {
-  79.0: '79.0.309.71',
-}
-
-edge_versions.forEach(function (version) {
-  edgeVersionNames[`edge${version}`] = edgeBrowserFullVersion[version]
-  edgeBrowserPaths[`edge${version}`] = formEdgeCanaryAppPath
+  operaBrowserPaths[`opera${version}`] = formOperaAppPath
 })
 
 function getWindowsBrowser (browser: Browser): Promise<FoundBrowser> {

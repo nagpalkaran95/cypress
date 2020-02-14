@@ -50,6 +50,15 @@ const detectOpera62 = partial(findApp, ['Opera 62.0.app', 'Contents/MacOS/Opera'
 const detectOpera63 = partial(findApp, ['Opera 63.0.app', 'Contents/MacOS/Opera', 'com.operasoftware.Opera', 'CFBundleShortVersionString'])
 const detectOpera64 = partial(findApp, ['Opera 64.0.app', 'Contents/MacOS/Opera', 'com.operasoftware.Opera', 'CFBundleShortVersionString'])
 
+const detectEdge79 = partial(findApp, ['Edge79.app', 'Contents/MacOS/Microsoft Edge', 'com.microsoft.Edge', 'CFBundleShortVersionString'])
+const detectEdge80 = partial(findApp, ['Edge80.app', 'Contents/MacOS/Microsoft Edge', 'com.microsoft.Edge', 'CFBundleShortVersionString'])
+
+const detectEdge79Beta = partial(findApp, ['Edgebeta79.app', 'Contents/MacOS/Microsoft Edge Beta', 'com.microsoft.Edge', 'CFBundleShortVersionString'])
+const detectEdge80Beta = partial(findApp, ['Edgebeta80.app', 'Contents/MacOS/Microsoft Edge Beta', 'com.microsoft.Edge', 'CFBundleShortVersionString'])
+
+const detectEdge81Dev = partial(findApp, ['Edgedev81.app', 'Contents/MacOS/Microsoft Edge Dev', 'com.microsoft.Edge', 'CFBundleShortVersionString'])
+
+// to detect browsers on your local system
 const detectCanary = partial(findApp, [
   'Google Chrome Canary.app',
   'Contents/MacOS/Google Chrome Canary',
@@ -131,10 +140,10 @@ const browsers: Detectors = {
     nightly: detectFirefoxNightly,
   },
   edge: {
-    stable: detectEdge,
+    stable: detectEdge, detectEdge79, detectEdge80,
     canary: detectEdgeCanary,
-    beta: detectEdgeBeta,
-    dev: detectEdgeDev,
+    beta: detectEdgeBeta, detectEdge79Beta, detectEdge80Beta,
+    dev: detectEdgeDev, detectEdge81Dev,
   },
   opera: {
     stable: detectOpera50, detectOpera51, detectOpera52, detectOpera53, detectOpera54, detectOpera55, detectOpera56, detectOpera57, detectOpera58, detectOpera59, detectOpera60, detectOpera61, detectOpera62, detectOpera63, detectOpera64,
